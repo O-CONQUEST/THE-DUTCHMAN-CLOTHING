@@ -38,12 +38,13 @@ function AuthForm() {
       <div className="text-center">
         {/* LOGO FIX: Since logo.png is directly in public/ in your sidebar */}
         <Image 
-          src="/logo.png" 
-          alt="Logo" 
+          src="/logo.png?v=1" 
+          alt="The Dutchman" 
           width={60} 
           height={60} 
           className="mx-auto mb-4" 
           priority 
+          unoptimized
         />
         <h1 className="text-2xl font-black uppercase tracking-tighter text-black">
           {isLogin ? "Member Login" : "Join the Voyage"}
