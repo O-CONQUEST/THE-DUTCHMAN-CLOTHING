@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { products } from "@/data/products"; // Ensure this path matches your products file
 
 const CartContext = createContext<any>(null);
 
@@ -9,66 +10,77 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<any[]>([]);
   const supabase = createClient();
 
-  // 1. Fetch cart from Supabase when the user logs in
-  useEffect(() => {
-    const fetchCart = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from("cart_items")
-          .select("*")
-          .eq("user_id", user.id);
+  // 1. Fetch and Sync Cart from Supabase
+  const fetchCart = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from("cart_items")
+        .select("*")
+        .eq("user_id", user.id);
 
-        if (data && !error) {
-          setCart(data);
-        }
+      if (data && !error) {
+        // MATCHING LOGIC: Link database product_id to the local products data
+        const detailedCart = data.map((item: any) => {
+          const productInfo = products.find((p) => p.id === item.product_id);
+          return {
+            ...item,
+            ...productInfo, // This adds name, price, and image to the item
+          };
+        });
+        setCart(detailedCart);
       }
-    };
+    }
+  };
+
+  useEffect(() => {
     fetchCart();
   }, []);
 
-  // 2. Add to Cart (Syncs to Database)
+  // 2. Add to Cart Logic
   const addToCart = async (product: any) => {
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
-      // Optimistic Update: Update UI immediately
-      setCart((prev) => [...prev, product]);
+    if (!user) {
+      alert("Please login to add items to your bag.");
+      return;
+    }
 
-      // Sync to Supabase
-      const { error } = await supabase
-        .from("cart_items")
-        .insert([{ 
-          user_id: user.id, 
-          product_id: product.id, 
-          quantity: 1 
-        }]);
+    // Save to Supabase
+    const { error } = await supabase
+      .from("cart_items")
+      .insert([{ 
+        user_id: user.id, 
+        product_id: product.id, 
+        quantity: 1 
+      }]);
 
-      if (error) {
-        console.error("Sync error:", error.message);
-        alert("Could not sync cart to account.");
-      }
+    if (error) {
+      console.error("Sync error:", error.message);
     } else {
-      alert("Please login to save items to your bag.");
+      // Refresh cart to get the most updated data
+      fetchCart();
+      alert(`${product.name} added to bag.`);
     }
   };
 
-  const removeFromCart = async (productId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    setCart((prev) => prev.filter((item) => item.product_id !== productId));
+  // 3. Remove from Cart Logic
+  const removeFromCart = async (dbId: string) => {
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("id", dbId);
 
-    if (user) {
-      await supabase
-        .from("cart_items")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("product_id", productId);
+    if (!error) {
+      setCart((prev) => prev.filter((item) => item.id !== dbId));
     }
   };
+
+  // 4. Calculate Total (Prevents NaN)
+  const subtotal = cart.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, subtotal }}>
       {children}
     </CartContext.Provider>
   );

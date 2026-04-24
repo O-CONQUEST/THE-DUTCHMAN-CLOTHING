@@ -1,79 +1,71 @@
 "use client";
 
-import { useCart } from "@/context/CartContext";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useCart } from "@/context/CartContext";
 
-export default function BagPage() {
-  const { cart } = useCart();
-  const total = cart.reduce((acc: number, item: any) => acc + item.price, 0);
+export default function CartPage() {
+  const { cart, removeFromCart, subtotal } = useCart();
 
   return (
-    <main className="min-h-screen bg-white text-black p-8 md:p-20 font-sans">
-      <div className="max-w-4xl mx-auto">
-        <header className="flex justify-between items-center mb-12 border-b pb-6">
-          <h1 className="text-4xl font-black uppercase tracking-tighter italic">Your Bag</h1>
-          <Link href="/collection" className="text-[10px] font-bold uppercase tracking-widest border-b border-black">
+    <main className="min-h-screen bg-white text-black p-6 font-sans">
+      <div className="max-w-6xl mx-auto mt-10">
+        <div className="flex justify-between items-end mb-10">
+          <h1 className="text-6xl font-black uppercase tracking-tighter italic">Your Bag</h1>
+          <Link href="/collection" className="text-[10px] font-bold uppercase tracking-widest border-b border-black pb-1">
             Continue Shopping
           </Link>
-        </header>
+        </div>
 
-        {cart.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="text-gray-400 uppercase tracking-widest text-[10px] mb-6">Your bag is currently empty.</p>
-            <Link href="/collection" className="bg-black text-white px-10 py-4 text-[10px] font-bold uppercase tracking-widest">
-              Explore Collection
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="md:col-span-2 space-y-8">
-              {cart.map((item: any, index: number) => (
-                <div key={index} className="flex gap-6 border-b pb-6 items-center">
-                  
-                  {/* REAL IMAGE IN THE BAG */}
-                  <div className="w-20 h-24 bg-neutral-50 flex-shrink-0 relative border border-neutral-100 overflow-hidden">
-                    <Image 
-                      src={item.image} 
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
+        <div className="flex flex-col lg:flex-row gap-20">
+          {/* Items List */}
+          <div className="flex-[2] border-t border-black">
+            {cart.length === 0 ? (
+              <p className="py-20 text-[10px] uppercase tracking-widest text-neutral-400">Your bag is empty.</p>
+            ) : (
+              cart.map((item) => (
+                <div key={item.id} className="flex gap-6 py-10 border-b border-neutral-100 items-center">
+                  <div className="w-24 h-32 bg-neutral-50 relative">
+                    {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
                   </div>
-
-                  <div className="flex-1 flex justify-between">
-                    <div>
-                      <h3 className="font-bold uppercase text-xs tracking-tight">{item.name}</h3>
-                      <p className="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-medium">Original Fit</p>
-                    </div>
-                    <p className="font-bold text-sm">${item.price}.00</p>
+                  <div className="flex-1">
+                    <h2 className="text-[12px] font-bold uppercase tracking-widest">{item.name || "Original Fit"}</h2>
+                    <button 
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-[9px] uppercase tracking-widest text-red-500 mt-2 font-bold"
+                    >
+                      Remove
+                    </button>
                   </div>
+                  <div className="text-[12px] font-bold">${item.price || "0"}.00</div>
                 </div>
-              ))}
-            </div>
-
-            <div className="bg-neutral-50 p-8 h-fit border border-neutral-100">
-              <h2 className="text-lg font-black uppercase tracking-tighter mb-6">Summary</h2>
-              <div className="space-y-4 border-b pb-6 text-[10px] uppercase tracking-widest font-bold">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>${total}.00</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Shipping</span>
-                  <span>Free</span>
-                </div>
-              </div>
-              <div className="flex justify-between py-6 font-bold text-xl tracking-tighter">
-                <span>Total</span>
-                <span>${total}.00</span>
-              </div>
-              <button className="w-full bg-black text-white py-5 text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-neutral-800 transition">
-                Checkout
-              </button>
-            </div>
+              ))
+            )}
           </div>
-        )}
+
+          {/* Summary Section */}
+          <div className="flex-1 bg-neutral-50 p-10 h-fit">
+            <h2 className="text-xl font-black uppercase tracking-tighter mb-8">Summary</h2>
+            <div className="space-y-4 border-b border-neutral-200 pb-6">
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                <span>Subtotal</span>
+                <span>${subtotal}.00</span>
+              </div>
+              <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-neutral-400">
+                <span>Shipping</span>
+                <span>Free</span>
+              </div>
+            </div>
+            <div className="flex justify-between py-8">
+              <span className="text-2xl font-black uppercase tracking-tighter">Total</span>
+              <span className="text-2xl font-black uppercase tracking-tighter">${subtotal}.00</span>
+            </div>
+            <button className="w-full bg-black text-white py-6 text-[10px] font-bold uppercase tracking-[0.3em] hover:opacity-80 transition">
+              Checkout
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );
