@@ -39,13 +39,10 @@ export default function Home() {
       <section className="flex-1 flex flex-col items-center justify-center text-center px-10">
         {/* Large Hero Logo */}
         <div className="mb-14 animate-in fade-in zoom-in duration-1000">
-          <Image 
+          <img
             src="/logo.png" 
             alt="The Dutchman Official" 
-            width={480} 
-            height={480} 
-            priority
-            className="object-contain drop-shadow-sm"
+            style={{ width: '60px', height: 'auto' }}
           />
         </div>
         
