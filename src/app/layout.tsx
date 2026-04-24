@@ -43,9 +43,9 @@ export default function RootLayout({
                 */}
                 <img 
                   src="/logo.png" 
-                  alt="THE DUTCHMAN" 
+                  alt="LOGO" 
                   className="h-8 w-auto block mx-auto"
-                  style={{ minWidth: '40px' }}
+            
                 />
               </Link>
             </div>
