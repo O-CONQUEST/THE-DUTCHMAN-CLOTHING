@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { products } from "@/data/products";
+import { formatCurrency } from "@/lib/currency";
 
 export const metadata: Metadata = {
   title: "The Catalog | The Dutchman",
@@ -25,7 +26,7 @@ export default function CollectionPage() {
                 />
               </div>
               <h3 className="text-[10px] font-bold uppercase tracking-tight">{product.name}</h3>
-              <p className="text-[10px] text-gray-500 mt-1">${product.price}.00</p>
+              <p className="text-[10px] text-gray-500 mt-1">{formatCurrency(product.price)}</p>
             </Link>
           ))}
         </div>

@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 
 export default function Navbar() {
   const { user, itemCount, signOut } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+  const [prevPathname, setPrevPathname] = useState(pathname);
 
-  useEffect(() => {
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setMenuOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <nav className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 sticky top-0 bg-white z-[100]">

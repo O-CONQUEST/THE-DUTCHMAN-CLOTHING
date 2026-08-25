@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/data/products";
+import { formatCurrency } from "@/lib/currency";
 
 export default function ProductDetail({ product }: { product: Product }) {
   const { addToCart, user, authLoading } = useCart();
@@ -34,7 +35,7 @@ export default function ProductDetail({ product }: { product: Product }) {
         <div className="flex-1 space-y-10 py-6">
           <header>
             <h1 className="text-5xl font-black uppercase tracking-tighter leading-none">{product.name}</h1>
-            <p className="text-xl font-medium text-neutral-600 mt-4">${product.price}.00</p>
+            <p className="text-xl font-medium text-neutral-600 mt-4">{formatCurrency(product.price)}</p>
           </header>
 
           <p className="text-sm leading-relaxed text-neutral-500 max-w-md">{product.description}</p>

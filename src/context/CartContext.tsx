@@ -19,7 +19,6 @@ type CartContextValue = {
   addToCart: (product: Product) => Promise<void>;
   removeFromCart: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
-  checkout: () => Promise<boolean>;
   signOut: () => Promise<void>;
   toast: string | null;
   showToast: (message: string) => void;
@@ -144,20 +143,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const checkout = async () => {
-    if (!user || cart.length === 0) return false;
-
-    const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
-
-    if (error) {
-      showToast("Checkout failed. Please try again.");
-      return false;
-    }
-
-    setCart([]);
-    return true;
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -178,7 +163,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
-        checkout,
         signOut,
         toast,
         showToast,

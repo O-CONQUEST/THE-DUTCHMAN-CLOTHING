@@ -2,17 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { formatCurrency } from "@/lib/currency";
 
 export default function CartView() {
-  const { cart, removeFromCart, updateQuantity, subtotal, checkout, user, authLoading } = useCart();
-  const router = useRouter();
-
-  const handleCheckout = async () => {
-    const success = await checkout();
-    if (success) router.push("/checkout/success");
-  };
+  const { cart, removeFromCart, updateQuantity, subtotal, user, authLoading } = useCart();
 
   return (
     <main className="min-h-screen bg-white text-black p-6 font-sans">
@@ -77,7 +71,7 @@ export default function CartView() {
                     </button>
                   </div>
                   <div className="text-[12px] font-bold">
-                    ${(item.price * item.quantity).toLocaleString()}.00
+                    {formatCurrency(item.price * item.quantity)}
                   </div>
                 </div>
               ))
@@ -90,7 +84,7 @@ export default function CartView() {
             <div className="space-y-4 border-b border-neutral-200 pb-6">
               <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                 <span>Subtotal</span>
-                <span>${subtotal.toLocaleString()}.00</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-neutral-400">
                 <span>Shipping</span>
@@ -100,16 +94,23 @@ export default function CartView() {
             <div className="flex justify-between py-8">
               <span className="text-2xl font-black uppercase tracking-tighter">Total</span>
               <span className="text-2xl font-black uppercase tracking-tighter">
-                ${subtotal.toLocaleString()}.00
+                {formatCurrency(subtotal)}
               </span>
             </div>
-            <button
-              onClick={handleCheckout}
-              disabled={cart.length === 0}
-              className="w-full bg-black text-white py-6 text-[10px] font-bold uppercase tracking-[0.3em] hover:opacity-80 transition disabled:opacity-30"
-            >
-              Checkout
-            </button>
+            {cart.length === 0 ? (
+              <button
+                disabled
+                className="w-full bg-black text-white py-6 text-[10px] font-bold uppercase tracking-[0.3em] disabled:opacity-30"
+              >
+                Checkout
+              </button>
+            ) : (
+              <Link href="/checkout">
+                <button className="w-full bg-black text-white py-6 text-[10px] font-bold uppercase tracking-[0.3em] hover:opacity-80 transition">
+                  Checkout
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
