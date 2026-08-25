@@ -1,89 +1,196 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/client";
-import { products } from "@/data/products"; // Ensure this path matches your products file
+import { products, type Product } from "@/data/products";
 
-const CartContext = createContext<any>(null);
+export type CartItem = Product & {
+  cartItemId: string;
+  quantity: number;
+};
+
+type CartContextValue = {
+  cart: CartItem[];
+  user: User | null;
+  authLoading: boolean;
+  itemCount: number;
+  subtotal: number;
+  addToCart: (product: Product) => Promise<void>;
+  removeFromCart: (cartItemId: string) => Promise<void>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  checkout: () => Promise<boolean>;
+  signOut: () => Promise<void>;
+  toast: string | null;
+  showToast: (message: string) => void;
+};
+
+const CartContext = createContext<CartContextValue | null>(null);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
-  const [cart, setCart] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
   const supabase = createClient();
 
-  // 1. Fetch and Sync Cart from Supabase
-  const fetchCart = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const fetchCart = useCallback(
+    async (forUser: User) => {
       const { data, error } = await supabase
         .from("cart_items")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", forUser.id);
 
-      if (data && !error) {
-        // MATCHING LOGIC: Link database product_id to the local products data
-        const detailedCart = data.map((item: any) => {
-          const productInfo = products.find((p) => p.id === item.product_id);
+      if (error || !data) return;
+
+      const detailedCart: CartItem[] = data
+        .map((row: { id: string; product_id: string; quantity: number }) => {
+          const productInfo = products.find((p) => p.id === row.product_id);
+          if (!productInfo) return null;
           return {
-            ...item,
-            ...productInfo, // This adds name, price, and image to the item
+            ...productInfo,
+            cartItemId: row.id,
+            quantity: row.quantity ?? 1,
           };
-        });
-        setCart(detailedCart);
-      }
-    }
-  };
+        })
+        .filter((item): item is CartItem => item !== null);
+
+      setCart(detailedCart);
+    },
+    [supabase]
+  );
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      setAuthLoading(false);
+      if (nextUser) {
+        fetchCart(nextUser);
+      } else {
+        setCart([]);
+      }
+    });
 
-  // 2. Add to Cart Logic
-  const addToCart = async (product: any) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    return () => subscription.unsubscribe();
+  }, [supabase, fetchCart]);
 
+  const addToCart = async (product: Product) => {
     if (!user) {
-      alert("Please login to add items to your bag.");
+      showToast("Please sign in to add items to your bag.");
       return;
     }
 
-    // Save to Supabase
+    const existing = cart.find((item) => item.id === product.id);
+
+    if (existing) {
+      await updateQuantity(existing.cartItemId, existing.quantity + 1);
+      showToast(`${product.name} quantity updated.`);
+      return;
+    }
+
     const { error } = await supabase
       .from("cart_items")
-      .insert([{ 
-        user_id: user.id, 
-        product_id: product.id, 
-        quantity: 1 
-      }]);
+      .insert([{ user_id: user.id, product_id: product.id, quantity: 1 }]);
 
     if (error) {
       console.error("Sync error:", error.message);
+      showToast("Couldn't add that item. Please try again.");
     } else {
-      // Refresh cart to get the most updated data
-      fetchCart();
-      alert(`${product.name} added to bag.`);
+      await fetchCart(user);
+      showToast(`${product.name} added to bag.`);
     }
   };
 
-  // 3. Remove from Cart Logic
-  const removeFromCart = async (dbId: string) => {
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("id", dbId);
+  const removeFromCart = async (cartItemId: string) => {
+    const { error } = await supabase.from("cart_items").delete().eq("id", cartItemId);
 
     if (!error) {
-      setCart((prev) => prev.filter((item) => item.id !== dbId));
+      setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
+    } else {
+      showToast("Couldn't remove that item. Please try again.");
     }
   };
 
-  // 4. Calculate Total (Prevents NaN)
-  const subtotal = cart.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+  const updateQuantity = async (cartItemId: string, quantity: number) => {
+    if (quantity < 1) {
+      await removeFromCart(cartItemId);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("cart_items")
+      .update({ quantity })
+      .eq("id", cartItemId);
+
+    if (!error) {
+      setCart((prev) =>
+        prev.map((item) => (item.cartItemId === cartItemId ? { ...item, quantity } : item))
+      );
+    } else {
+      showToast("Couldn't update quantity. Please try again.");
+    }
+  };
+
+  const checkout = async () => {
+    if (!user || cart.length === 0) return false;
+
+    const { error } = await supabase.from("cart_items").delete().eq("user_id", user.id);
+
+    if (error) {
+      showToast("Checkout failed. Please try again.");
+      return false;
+    }
+
+    setCart([]);
+    return true;
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setCart([]);
+  };
+
+  const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, subtotal }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        user,
+        authLoading,
+        itemCount,
+        subtotal,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        checkout,
+        signOut,
+        toast,
+        showToast,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
 };
 
-export const useCart = () => useContext(CartContext);
+export const useCart = () => {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within a CartProvider");
+  return ctx;
+};

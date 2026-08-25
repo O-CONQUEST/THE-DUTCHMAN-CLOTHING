@@ -42,5 +42,4 @@ export const products: Product[] = [
     image: "/clothes/item-5.jpeg",
     description: "Understated grey for the modern wanderer. Even in neutral tones, the Dutchman’s presence is absolute."
   }
-  // Keep adding up to item-8 here...
 ];

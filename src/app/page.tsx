@@ -1,51 +1,25 @@
-"use client";
-
-import Image from "next/image";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { useCart } from "@/context/CartContext";
+
+export const metadata: Metadata = {
+  title: "The Dutchman | Durable Goods for the Modern Voyage",
+  description: "Sleek fits for the modern voyage. Shop The Dutchman's collection of durable, minimalist essentials.",
+};
 
 export default function Home() {
-  // Access the cart from our context to show the count in the nav
-  const { cart } = useCart();
-
   return (
     <main className="min-h-screen bg-white text-black flex flex-col font-sans selection:bg-black selection:text-white">
-      
-      {/* NAVIGATIONBAR */}
-      <nav className="p-8 flex justify-between items-center bg-white z-50">
-        <div className="flex items-center gap-3">
-          {/* Small Navigation Logo */}
-          <Image 
-            src="/logo.png" 
-            alt="The Dutchman Logo" 
-            width={30} 
-            height={30} 
-            className="object-contain"
-          />
-          <h1 className="text-sm font-black uppercase tracking-tighter">The Dutchman</h1>
-        </div>
-
-        <div className="flex gap-8 text-[10px] font-bold uppercase tracking-[0.2em]">
-          <Link href="/auth" className="hover:opacity-50 transition-opacity">
-            Account
-          </Link>
-          <Link href="/cart" className="hover:opacity-50 transition-opacity">
-            Bag ({cart.length})
-          </Link>
-        </div>
-      </nav>
-
       {/* HERO SECTION - THE LANDING PAGE VIEW */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-10">
         {/* Large Hero Logo */}
         <div className="mb-14 animate-in fade-in zoom-in duration-1000">
           <img
-            src="/logo.png" 
-            alt="The Dutchman Official" 
+            src="/logo.png"
+            alt="The Dutchman Official"
             style={{ width: '60px', height: 'auto' }}
           />
         </div>
-        
+
         <div className="space-y-8">
           <div className="space-y-2">
             <p className="text-[10px] text-gray-400 uppercase tracking-[0.6em] ml-1">
