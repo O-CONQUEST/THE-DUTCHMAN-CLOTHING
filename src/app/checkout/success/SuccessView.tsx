@@ -11,6 +11,7 @@ type OrderItem = {
   name: string;
   price: number;
   quantity: number;
+  size: string;
 };
 
 type Order = {
@@ -18,6 +19,8 @@ type Order = {
   fulfillment_method: "delivery" | "pickup";
   address: string | null;
   items: OrderItem[];
+  subtotal: number;
+  discount_amount: number;
   total: number;
 };
 
@@ -59,16 +62,22 @@ function SuccessContent() {
           <div className="space-y-2 border-t border-neutral-200 pt-4">
             {order.items.map((item) => (
               <div
-                key={item.product_id}
+                key={`${item.product_id}-${item.size}`}
                 className="flex justify-between text-[10px] font-bold uppercase tracking-widest"
               >
                 <span>
-                  {item.name} × {item.quantity}
+                  {item.name} ({item.size}) × {item.quantity}
                 </span>
                 <span>{formatCurrency(item.price * item.quantity)}</span>
               </div>
             ))}
           </div>
+          {order.discount_amount > 0 && (
+            <div className="flex justify-between pt-4 mt-4 border-t border-neutral-200 text-[10px] font-bold uppercase tracking-widest text-green-700">
+              <span>Discount</span>
+              <span>-{formatCurrency(order.discount_amount)}</span>
+            </div>
+          )}
           <div className="flex justify-between pt-4 mt-4 border-t border-neutral-200 text-[11px] font-black uppercase tracking-widest">
             <span>Total</span>
             <span>{formatCurrency(order.total)}</span>

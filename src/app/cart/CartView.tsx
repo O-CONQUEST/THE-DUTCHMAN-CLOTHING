@@ -33,9 +33,9 @@ export default function CartView() {
               cart.map((item) => (
                 <div key={item.cartItemId} className="flex gap-6 py-10 border-b border-neutral-100 items-center">
                   <div className="w-24 h-32 bg-neutral-50 relative flex-shrink-0">
-                    {item.image && (
+                    {item.images[0] && (
                       <Image
-                        src={item.image}
+                        src={item.images[0]}
                         alt={item.name || "Product"}
                         fill
                         className="object-cover"
@@ -46,6 +46,9 @@ export default function CartView() {
                     <h2 className="text-[12px] font-bold uppercase tracking-widest">
                       {item.name || "Original Fit"}
                     </h2>
+                    <p className="text-[9px] uppercase tracking-widest text-neutral-400 mt-1">
+                      Size: {item.size}
+                    </p>
                     <div className="flex items-center gap-3 mt-4">
                       <button
                         onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}

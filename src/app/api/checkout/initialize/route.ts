@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { products } from "@/data/products";
 import { initializePaystackTransaction } from "@/lib/paystack";
+import { validatePromoCode } from "@/lib/promo";
 
 type CheckoutBody = {
   fulfillmentMethod: "delivery" | "pickup";
   fullName: string;
   phone: string;
   address?: string;
+  promoCode?: string;
 };
 
 export async function POST(request: Request) {
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const { fulfillmentMethod, fullName, phone, address } = body;
+  const { fulfillmentMethod, fullName, phone, address, promoCode } = body;
 
   if (fulfillmentMethod !== "delivery" && fulfillmentMethod !== "pickup") {
     return NextResponse.json({ error: "Invalid fulfillment method." }, { status: 400 });
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   const items = rows
-    .map((row: { product_id: string; quantity: number }) => {
+    .map((row: { product_id: string; quantity: number; size: string | null }) => {
       const product = products.find((p) => p.id === row.product_id);
       if (!product) return null;
       return {
@@ -57,6 +60,7 @@ export async function POST(request: Request) {
         name: product.name,
         price: product.price,
         quantity: row.quantity,
+        size: row.size ?? product.sizes[0],
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -65,10 +69,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Your bag is empty." }, { status: 400 });
   }
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Checkout isn't configured yet.";
+    return NextResponse.json({ error: message }, { status: 503 });
+  }
+
+  // Best-effort stock check. Final enforcement happens atomically at
+  // payment verification, so a rare race here can't oversell — it just
+  // won't be caught until then.
+  for (const item of items) {
+    const { data: stock } = await admin
+      .from("product_inventory")
+      .select("quantity")
+      .eq("product_id", item.product_id)
+      .eq("size", item.size)
+      .maybeSingle();
+
+    if (stock && stock.quantity < item.quantity) {
+      return NextResponse.json(
+        { error: `${item.name} (${item.size}) is out of stock.` },
+        { status: 400 }
+      );
+    }
+  }
+
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  let discountPercent = 0;
+  let appliedCode: string | null = null;
+  if (promoCode?.trim()) {
+    const promoResult = await validatePromoCode(promoCode);
+    if (!promoResult.valid) {
+      return NextResponse.json({ error: promoResult.reason }, { status: 400 });
+    }
+    discountPercent = promoResult.discountPercent;
+    appliedCode = promoResult.code;
+  }
+
+  const discountAmount = Math.round((subtotal * discountPercent) / 100);
+  const total = subtotal - discountAmount;
   const orderId = crypto.randomUUID();
 
-  const { error: orderError } = await supabase.from("orders").insert({
+  const { error: orderError } = await admin.from("orders").insert({
     id: orderId,
     user_id: user.id,
     status: "pending",
@@ -77,7 +122,9 @@ export async function POST(request: Request) {
     phone: phone.trim(),
     address: fulfillmentMethod === "delivery" ? address!.trim() : null,
     items,
-    subtotal: total,
+    subtotal,
+    discount_amount: discountAmount,
+    promo_code: appliedCode,
     total,
     paystack_reference: orderId,
   });
@@ -102,7 +149,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ authorizationUrl: transaction.authorization_url });
   } catch (err) {
-    await supabase.from("orders").update({ status: "failed" }).eq("id", orderId);
+    await admin.from("orders").update({ status: "failed" }).eq("id", orderId);
     const message = err instanceof Error ? err.message : "Payment initialization failed.";
     return NextResponse.json({ error: message }, { status: 502 });
   }

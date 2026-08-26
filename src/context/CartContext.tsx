@@ -8,6 +8,7 @@ import { products, type Product } from "@/data/products";
 export type CartItem = Product & {
   cartItemId: string;
   quantity: number;
+  size: string;
 };
 
 type CartContextValue = {
@@ -16,7 +17,7 @@ type CartContextValue = {
   authLoading: boolean;
   itemCount: number;
   subtotal: number;
-  addToCart: (product: Product) => Promise<void>;
+  addToCart: (product: Product, size: string) => Promise<void>;
   removeFromCart: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   signOut: () => Promise<void>;
@@ -53,13 +54,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       if (error || !data) return;
 
       const detailedCart: CartItem[] = data
-        .map((row: { id: string; product_id: string; quantity: number }) => {
+        .map((row: { id: string; product_id: string; quantity: number; size: string | null }) => {
           const productInfo = products.find((p) => p.id === row.product_id);
           if (!productInfo) return null;
           return {
             ...productInfo,
             cartItemId: row.id,
             quantity: row.quantity ?? 1,
+            size: row.size ?? productInfo.sizes[0],
           };
         })
         .filter((item): item is CartItem => item !== null);
@@ -86,13 +88,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, [supabase, fetchCart]);
 
-  const addToCart = async (product: Product) => {
+  const addToCart = async (product: Product, size: string) => {
     if (!user) {
       showToast("Please sign in to add items to your bag.");
       return;
     }
 
-    const existing = cart.find((item) => item.id === product.id);
+    const existing = cart.find((item) => item.id === product.id && item.size === size);
 
     if (existing) {
       await updateQuantity(existing.cartItemId, existing.quantity + 1);
@@ -102,7 +104,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { error } = await supabase
       .from("cart_items")
-      .insert([{ user_id: user.id, product_id: product.id, quantity: 1 }]);
+      .insert([{ user_id: user.id, product_id: product.id, quantity: 1, size }]);
 
     if (error) {
       console.error("Sync error:", error.message);

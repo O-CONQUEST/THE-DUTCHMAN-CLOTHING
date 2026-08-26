@@ -44,6 +44,12 @@ export default function Navbar() {
             </button>
             {menuOpen && (
               <div className="absolute right-0 mt-3 w-40 bg-white border border-neutral-100 shadow-lg py-2 z-[110]">
+                <Link
+                  href="/account/orders"
+                  className="block px-4 py-2 text-[9px] font-black uppercase tracking-widest text-black hover:bg-neutral-50 transition"
+                >
+                  My Orders
+                </Link>
                 <button
                   onClick={() => {
                     setMenuOpen(false);
