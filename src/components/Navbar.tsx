@@ -21,7 +21,7 @@ export default function Navbar() {
       <div className="flex-1">
         <Link
           href="/collection"
-          className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800 hover:text-black transition-colors"
+          className="text-[10px] font-black uppercase tracking-[0.2em] text-black hover:opacity-60 transition"
         >
           Collection
         </Link>
@@ -38,7 +38,7 @@ export default function Navbar() {
           <div className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800 hover:text-black transition-colors"
+              className="text-[10px] font-black uppercase tracking-[0.2em] text-black hover:opacity-60 transition"
             >
               {user.email?.split("@")[0]}
             </button>
@@ -49,7 +49,7 @@ export default function Navbar() {
                     setMenuOpen(false);
                     signOut();
                   }}
-                  className="w-full text-left px-4 py-2 text-[9px] font-black uppercase tracking-widest text-amber-800 hover:text-black hover:bg-neutral-50 transition-colors"
+                  className="w-full text-left px-4 py-2 text-[9px] font-black uppercase tracking-widest text-black hover:bg-neutral-50 transition"
                 >
                   Sign Out
                 </button>
@@ -59,14 +59,14 @@ export default function Navbar() {
         ) : (
           <Link
             href="/auth"
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800 hover:text-black transition-colors"
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-black hover:opacity-60 transition"
           >
             Account
           </Link>
         )}
         <Link
           href="/cart"
-          className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-800 hover:text-black transition-colors"
+          className="text-[10px] font-black uppercase tracking-[0.2em] text-black hover:opacity-60 transition"
         >
           Bag ({itemCount})
         </Link>
